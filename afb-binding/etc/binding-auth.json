@@ -1,0 +1,11 @@
+{
+    "binding": [
+        {
+            "uid": "authentication-manager",
+            "api": "auth",
+            "path": "/home/fulup/.cargo/build/debug/libafb_auth.so",
+            "info": "set/get api",
+            "permission": "acl:auth"
+        }
+    ]
+}

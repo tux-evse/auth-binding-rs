@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "auth-lib",
+    "afb-types",
+    "afb-binding",
+]
+
