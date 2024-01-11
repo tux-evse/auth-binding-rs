@@ -48,12 +48,6 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         ""
     };
 
-    let permission = if let Ok(value) = jconf.get::<String>("permission") {
-        AfbPermission::new(to_static_str(value))
-    } else {
-        AfbPermission::new("acl:auth:client")
-    };
-
     let nfc_api = to_static_str(jconf.get::<String>("nfc_api")?);
 
     let config = BindingCfg {
@@ -61,7 +55,11 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     };
 
     // create backend API
-    let api = AfbApi::new(api).set_info(info).set_permission(permission);
+    let api = AfbApi::new(api).set_info(info);
+    if let Ok(value) = jconf.get::<String>("permission") {
+        api.set_permission(AfbPermission::new(to_static_str(value)));
+    };
+
     register_verbs(api, config)?;
 
     Ok(api.finalize()?)

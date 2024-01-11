@@ -11,7 +11,7 @@
  */
 
 use afbv4::prelude::*;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use typesv4::prelude::*;
 
 pub struct ManagerState {
@@ -43,16 +43,16 @@ impl ManagerHandle {
         Box::leak(Box::new(handle))
     }
 
+    #[track_caller]
+    fn get_state(&self) -> Result<RefMut<'_, ManagerState>, AfbError> {
+        match self.data_set.try_borrow_mut() {
+            Err(_) => return afb_error!("charging-manager-update", "fail to access &mut data_set"),
+            Ok(value) => Ok(value),
+        }
+    }
+
     pub fn nfc_check(&self) -> Result<&Self, AfbError> {
-        let mut data_set = match self.data_set.try_borrow_mut() {
-            Ok(value) => value,
-            Err(_) => {
-                return afb_error!(
-                    "authentication-manager-update",
-                    "fail to access &mut data_set"
-                )
-            }
-        };
+        let mut data_set = self.get_state()?;
 
         let check_nfc = || -> Result<String, AfbError> {
             let response= AfbSubCall::call_sync(self.event.get_apiv4(), self.scard_api, "get-contract", true)?;
