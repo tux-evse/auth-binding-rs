@@ -20,8 +20,7 @@ struct NfcAuthCtx {
 }
 AfbVerbRegister!(NfcAuthVerb, nfc_auth_cb, NfcAuthCtx);
 fn nfc_auth_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut NfcAuthCtx) -> Result<(), AfbError> {
-
-    afb_log_msg!(Debug, rqt,"nfc-authentication request");
+    afb_log_msg!(Debug, rqt, "nfc-authentication request");
     ctx.mgr.nfc_check()?;
 
     rqt.reply(AFB_NO_DATA, 0);
@@ -48,20 +47,18 @@ fn subscribe_callback(
 }
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
-
-   let auth_event = AfbEvent::new("authorize");
-    let auth_mgr = ManagerHandle::new(auth_event, config.nfc_api);
+    let event = AfbEvent::new("evt");
+    let mgr = ManagerHandle::new(event, config.nfc_api);
 
     let auth_nfc = AfbVerb::new("nfc authentication")
         .set_name("nfc-auth")
-        .set_callback(Box::new(NfcAuthCtx { mgr: auth_mgr }))
+        .set_callback(Box::new(NfcAuthCtx { mgr }))
         .set_info("Authenticate with nfc")
         .finalize()?;
 
-    let event = AfbEvent::new("evt");
     let subscribe = AfbVerb::new("subscribe")
         .set_callback(Box::new(SubscribeCtrl { event }))
-        .set_info("subscribe Iec6185 event")
+        .set_info("subscribe authentication event")
         .set_usage("true|false")
         .finalize()?;
 
