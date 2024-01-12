@@ -3,9 +3,11 @@
         {
             "uid": "authentication-manager",
             "api": "auth",
-            "path": "/home/fulup/.cargo/build/debug/libafb_auth.so",
+            "path": "/usr/redpesk/auth-binding-rs/lib/libafb_auth.so",
             "info": "set/get api",
-            "permission": "acl:auth"
+            "permission": "acl:auth",
+            "tic": 5000,
+            "nfc_api": "scard",
         }
     ]
 }
