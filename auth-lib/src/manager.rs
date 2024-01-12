@@ -14,7 +14,6 @@ use afbv4::prelude::*;
 use std::cell::{RefCell, RefMut};
 use typesv4::prelude::*;
 
-
 pub struct ManagerHandle {
     data_set: RefCell<AuthState>,
     event: &'static AfbEvent,
@@ -42,19 +41,22 @@ impl ManagerHandle {
     }
 
     pub fn nfc_check(&self) -> Result<&Self, AfbError> {
-        let mut data_set = self.get_state()?;
-
+        self.event.push(AuthMsg::Pending);
         let check_nfc = || -> Result<String, AfbError> {
-            let response= AfbSubCall::call_sync(self.event.get_apiv4(), self.scard_api, "get-contract", true)?;
+            let response = AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.scard_api,
+                "get-contract",
+                true,
+            )?;
             response.get::<String>(0)
         };
 
-        self.event.push(AuthMsg::Pending);
-        data_set.contract = String::new();
+        let mut data_set = self.get_state()?;
         match check_nfc() {
             Err(error) => {
                 data_set.contract = String::new();
-                afb_log_msg!(Notice, self.event,"{}",error);
+                afb_log_msg!(Notice, self.event, "{}", error);
                 self.event.push(AuthMsg::Done);
             }
             Ok(value) => {
