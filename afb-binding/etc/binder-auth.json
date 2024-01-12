@@ -6,4 +6,5 @@
     ],
     "monitoring": true,
     "tracereq": "none",
+    "tic":5000
 }

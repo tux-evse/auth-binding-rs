@@ -14,19 +14,9 @@ use afbv4::prelude::*;
 use std::cell::{RefCell, RefMut};
 use typesv4::prelude::*;
 
-pub struct ManagerState {
-    contact: Option<String>,
-}
-
-impl ManagerState {
-    pub fn default() -> Self {
-        // Warning: unit are value*100
-        ManagerState { contact: None }
-    }
-}
 
 pub struct ManagerHandle {
-    data_set: RefCell<ManagerState>,
+    data_set: RefCell<AuthState>,
     event: &'static AfbEvent,
     scard_api: &'static str,
 }
@@ -34,7 +24,7 @@ pub struct ManagerHandle {
 impl ManagerHandle {
     pub fn new(event: &'static AfbEvent, scard_api: &'static str) -> &'static mut Self {
         let handle = ManagerHandle {
-            data_set: RefCell::new(ManagerState::default()),
+            data_set: RefCell::new(AuthState::default()),
             event,
             scard_api,
         };
@@ -44,7 +34,7 @@ impl ManagerHandle {
     }
 
     #[track_caller]
-    fn get_state(&self) -> Result<RefMut<'_, ManagerState>, AfbError> {
+    pub fn get_state(&self) -> Result<RefMut<'_, AuthState>, AfbError> {
         match self.data_set.try_borrow_mut() {
             Err(_) => return afb_error!("charging-manager-update", "fail to access &mut data_set"),
             Ok(value) => Ok(value),
@@ -59,17 +49,17 @@ impl ManagerHandle {
             response.get::<String>(0)
         };
 
-        self.event.push(AuthState::Pending);
-        data_set.contact = None;
+        self.event.push(AuthMsg::Pending);
+        data_set.contract = String::new();
         match check_nfc() {
             Err(error) => {
-                data_set.contact = None;
+                data_set.contract = String::new();
                 afb_log_msg!(Notice, self.event,"{}",error);
-                self.event.push(AuthState::Done);
+                self.event.push(AuthMsg::Done);
             }
             Ok(value) => {
-                data_set.contact = Some(value);
-                self.event.push(AuthState::Done);
+                data_set.contract = value;
+                self.event.push(AuthMsg::Done);
             }
         }
         Ok(self)
