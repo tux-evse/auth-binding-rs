@@ -54,17 +54,16 @@ impl ManagerHandle {
 
         let mut data_set = self.get_state()?;
         match check_nfc() {
-            Err(error) => {
+            Err(_) => {
                 data_set.contract = String::new();
-                afb_log_msg!(Notice, self.event, "{}", error);
                 self.event.push(AuthMsg::Fail);
-                Err(error)
+                return afb_error!("nfc-auth-fail", "Fail authenticate contract");
             }
             Ok(value) => {
                 data_set.contract = value;
                 self.event.push(AuthMsg::Done);
-                Ok(())
             }
         }
+        Ok(())
     }
 }

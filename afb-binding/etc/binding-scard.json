@@ -10,6 +10,7 @@
                 "info": "Demo config with Mifare Classic",
                 "reader": "ACR122U",
                 "verbose": 1,
+                "timeout":30,
                 "keys": [
                     {
                         "uid": "key-a",
