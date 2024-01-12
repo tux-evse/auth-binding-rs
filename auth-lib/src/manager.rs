@@ -40,7 +40,7 @@ impl ManagerHandle {
         }
     }
 
-    pub fn nfc_check(&self) -> Result<&Self, AfbError> {
+    pub fn nfc_check(&self) -> Result<(), AfbError> {
         self.event.push(AuthMsg::Pending);
         let check_nfc = || -> Result<String, AfbError> {
             let response = AfbSubCall::call_sync(
@@ -57,13 +57,14 @@ impl ManagerHandle {
             Err(error) => {
                 data_set.contract = String::new();
                 afb_log_msg!(Notice, self.event, "{}", error);
-                self.event.push(AuthMsg::Done);
+                self.event.push(AuthMsg::Fail);
+                Err(error)
             }
             Ok(value) => {
                 data_set.contract = value;
                 self.event.push(AuthMsg::Done);
+                Ok(())
             }
         }
-        Ok(self)
     }
 }
