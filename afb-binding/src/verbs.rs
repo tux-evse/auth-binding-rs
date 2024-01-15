@@ -21,8 +21,8 @@ struct NfcAuthCtx {
 AfbVerbRegister!(NfcAuthVerb, nfc_auth_cb, NfcAuthCtx);
 fn nfc_auth_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut NfcAuthCtx) -> Result<(), AfbError> {
     afb_log_msg!(Debug, rqt, "nfc-authentication request");
-    ctx.mgr.nfc_check()?;
-    rqt.reply(AFB_NO_DATA, 0);
+    let contract= ctx.mgr.nfc_check()?;
+    rqt.reply(contract, 0);
     Ok(())
 }
 
