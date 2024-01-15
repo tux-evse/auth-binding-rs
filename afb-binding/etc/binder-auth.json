@@ -6,5 +6,8 @@
     ],
     "monitoring": true,
     "tracereq": "none",
-    "tic":5000
+    "tic": 5000,
+    "ws-server": [
+        "unix:/tmp/api/auth"
+    ]
 }

@@ -40,7 +40,7 @@ impl ManagerHandle {
         }
     }
 
-    pub fn nfc_check(&self) -> Result<JsoncObj, AfbError> {
+    pub fn nfc_check(&self) -> Result<AuthState, AfbError> {
         self.event.push(AuthMsg::Pending);
         let check_nfc = || -> Result<String, AfbError> {
             let response = AfbSubCall::call_sync(
@@ -55,16 +55,14 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
         let response= match check_nfc() {
             Err(_) => {
-                data_set.contract = String::new();
+                data_set.tagid = String::new();
                 self.event.push(AuthMsg::Fail);
                 return afb_error!("nfc-auth-fail", "Fail authenticate contract");
             }
             Ok(value) => {
-                let jsonc= JsoncObj::new();
-                jsonc.add("data", &value)?;
-                data_set.contract = value;
+                data_set.tagid = value;
                 self.event.push(AuthMsg::Done);
-                jsonc
+                data_set.clone()
             }
         };
         Ok(response)

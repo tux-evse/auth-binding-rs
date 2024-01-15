@@ -28,14 +28,18 @@ AfbDataConverter!(auth_state, AuthState);
 #[serde(rename_all = "lowercase")]
 pub struct AuthState {
     pub auth: AuthMsg,
-    pub contract:String,
+    pub tagid:String,
+    pub imax:u32,
+    pub pmax: u32,
 }
 
 impl AuthState {
     pub fn default() -> Self {
         AuthState {
             auth: AuthMsg::Idle,
-            contract: String::new(),
+            imax: 0,
+            pmax: 0,
+            tagid: String::new(),
         }
     }
 }

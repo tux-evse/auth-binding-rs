@@ -10,7 +10,7 @@ DIRNAME=`dirname $0`
 cd $DIRNAME/..
 CONFDIR=`pwd`/etc
 
-DEVTOOL_PORT=1237
+DEVTOOL_PORT=1238
 echo auth debug mode config=$CONFDIR/*.json port=$DEVTOOL_PORT
 
 afb-binder --name=afb-auth --port=$DEVTOOL_PORT -v \
