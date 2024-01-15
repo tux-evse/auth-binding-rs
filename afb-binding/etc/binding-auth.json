@@ -7,7 +7,7 @@
             "info": "set/get api",
             "permission": "acl:auth",
             "tic": 5000,
-            "nfc_api": "scard",
+            "nfc_api": "auth"
         }
     ]
 }

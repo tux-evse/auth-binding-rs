@@ -46,7 +46,7 @@ impl ManagerHandle {
             let response = AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.scard_api,
-                "get-contract",
+                "nfc-auth",
                 true,
             )?;
             response.get::<String>(0)
