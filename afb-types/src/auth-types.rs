@@ -55,7 +55,7 @@ pub enum AuthAction {
 }
 
 
-pub fn auth_register() -> Result<(),AfbError> {
+pub fn auth_registers() -> Result<(),AfbError> {
     auth_msg::register()?;
     auth_state::register()?;
     auth_actions::register()?;

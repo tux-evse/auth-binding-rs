@@ -29,7 +29,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     afb_log_msg!(Info, rootv4, "config:{}", jconf);
 
     // add binding custom converter
-    auth_register()?;
+    auth_registers()?;
 
     let uid = if let Ok(value) = jconf.get::<String>("uid") {
         to_static_str(value)
