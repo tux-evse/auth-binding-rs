@@ -8,6 +8,7 @@
     "tracereq": "none",
     "tic": 5000,
     "ws-server": [
-        "unix:/tmp/api/auth"
+        "unix:/tmp/api/auth",
+        "tcp:*:12381/auth"
     ]
 }
