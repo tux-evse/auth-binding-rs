@@ -90,7 +90,7 @@ fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Resul
 }
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
-    let event = AfbEvent::new("evt");
+    let event = AfbEvent::new("msg");
     let mgr = ManagerHandle::new(event, config.nfc_api);
 
     let state_event = AfbEvent::new("state");
@@ -111,7 +111,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
 
     let state_verb = AfbVerb::new("auth-state")
         .set_name("state")
-        .set_info("session authentication state")
+        .set_info("session auth-state state")
         .set_action("['read','subscribe','unsubscribe']")?
         .set_callback(Box::new(StateRequestCtx {
             mgr,
@@ -121,7 +121,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
 
     let subscribe = AfbVerb::new("subscribe")
         .set_callback(Box::new(SubscribeCtrl { event }))
-        .set_info("subscribe authentication event")
+        .set_info("subscribe auth-msg event")
         .set_usage("true|false")
         .finalize()?;
 
