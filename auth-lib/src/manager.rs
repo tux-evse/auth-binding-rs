@@ -52,13 +52,14 @@ impl ManagerHandle {
             response.get::<String>(0)
         };
 
-        self.event.push(AuthState::Pending);
-        data_set.contact = None;
-        match check_nfc() {
+        self.event.push(AuthMsg::Pending);
+        let mut data_set= self.get_state()?;
+        let response= match check_nfc() {
             Err(error) => {
-                data_set.contact = None;
+                data_set.tagid = String::new();
                 afb_log_msg!(Notice, self.event,"{}",error);
-                self.event.push(AuthState::Fail);
+                self.event.push(AuthMsg::Fail);
+                return afb_error!("nfc-check-fail", "authentication refused")
             }
             Ok(value) => {
                 data_set.tagid = value;
