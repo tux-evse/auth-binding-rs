@@ -10,10 +10,10 @@
  *
  */
 
+use crate::prelude::*;
 use afbv4::prelude::*;
 use libauth::prelude::*;
 use typesv4::prelude::*;
-use crate::prelude::*;
 
 struct NfcAuthCtx {
     mgr: &'static ManagerHandle,
@@ -21,7 +21,22 @@ struct NfcAuthCtx {
 AfbVerbRegister!(NfcAuthVerb, nfc_auth_cb, NfcAuthCtx);
 fn nfc_auth_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut NfcAuthCtx) -> Result<(), AfbError> {
     afb_log_msg!(Debug, rqt, "nfc-authentication request");
-    let contract= ctx.mgr.nfc_check()?;
+    let contract = ctx.mgr.nfc_check()?;
+    rqt.reply(contract, 0);
+    Ok(())
+}
+
+struct ResetAuthCtx {
+    mgr: &'static ManagerHandle,
+}
+AfbVerbRegister!(ResetAuthVerb, reset_auth_cb, ResetAuthCtx);
+fn reset_auth_cb(
+    rqt: &AfbRequest,
+    _args: &AfbData,
+    ctx: &mut ResetAuthCtx,
+) -> Result<(), AfbError> {
+    afb_log_msg!(Debug, rqt, "reset-authentication request");
+    let contract = ctx.mgr.reset()?;
     rqt.reply(contract, 0);
     Ok(())
 }
@@ -55,7 +70,6 @@ fn state_request_cb(
     args: &AfbData,
     ctx: &mut StateRequestCtx,
 ) -> Result<(), AfbError> {
-
     match args.get::<&AuthAction>(0)? {
         AuthAction::READ => {
             let data_set = ctx.mgr.get_state()?;
@@ -84,7 +98,7 @@ struct TimerCtx {
 // send charging state every tic ms.
 AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
 fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
-    let state= ctx.mgr.get_state()?;
+    let state = ctx.mgr.get_state()?;
     ctx.evt.push(state.clone());
     Ok(())
 }
@@ -98,8 +112,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_period(config.tic)
         .set_decount(0)
         .set_callback(Box::new(TimerCtx {
-           mgr,
-           evt: state_event,
+            mgr,
+            evt: state_event,
         }))
         .start()?;
 
@@ -107,6 +121,12 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_name("nfc-auth")
         .set_callback(Box::new(NfcAuthCtx { mgr }))
         .set_info("Authenticate with nfc")
+        .finalize()?;
+
+    let auth_reset = AfbVerb::new("reset authentication")
+        .set_name("reset-auth")
+        .set_callback(Box::new(ResetAuthCtx { mgr }))
+        .set_info("Authenticate with reset")
         .finalize()?;
 
     let state_verb = AfbVerb::new("auth-state")
@@ -126,6 +146,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     api.add_verb(auth_nfc);
+    api.add_verb(auth_reset);
     api.add_verb(subscribe);
     api.add_verb(state_verb);
     api.add_event(event);

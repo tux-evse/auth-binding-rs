@@ -40,6 +40,16 @@ impl ManagerHandle {
         }
     }
 
+    pub fn reset(&self) -> Result<AuthState, AfbError> {
+        let mut data_set= self.get_state()?;
+        data_set.tagid= String::new();
+        data_set.auth=AuthMsg::Idle;
+        data_set.imax=0;
+        data_set.pmax=0;
+        self.event.push(data_set.auth);
+        Ok(data_set.clone())
+    }
+
     pub fn nfc_check(&self) -> Result<AuthState, AfbError> {
         self.event.push(AuthMsg::Pending);
         let check_nfc = || -> Result<String, AfbError> {
