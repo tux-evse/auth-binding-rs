@@ -74,6 +74,9 @@ impl ManagerHandle {
             Ok(value) => {
                 data_set.tagid = value;
                 data_set.auth  = AuthMsg::Done;
+                // Fulup TBD this should comme from NFC card
+                data_set.imax  = 32;
+                data_set.pmax  = 22;
                 data_set.clone()
             }
         };
