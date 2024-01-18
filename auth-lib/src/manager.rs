@@ -66,17 +66,18 @@ impl ManagerHandle {
         let mut data_set= self.get_state()?;
         let response= match check_nfc() {
             Err(error) => {
-                data_set.tagid = String::new();
                 afb_log_msg!(Notice, self.event,"{}",error);
-                self.event.push(AuthMsg::Fail);
+                data_set.tagid = String::new();
+                data_set.auth  = AuthMsg::Fail;
                 return afb_error!("nfc-check-fail", "authentication refused")
             }
             Ok(value) => {
                 data_set.tagid = value;
-                self.event.push(AuthMsg::Done);
+                data_set.auth  = AuthMsg::Done;
                 data_set.clone()
             }
         };
+        self.event.push(data_set.auth);
         Ok(response)
     }
 }
