@@ -18,14 +18,16 @@ pub struct ManagerHandle {
     data_set: RefCell<AuthState>,
     event: &'static AfbEvent,
     scard_api: &'static str,
+    ocpp_api: &'static str,
 }
 
 impl ManagerHandle {
-    pub fn new(event: &'static AfbEvent, scard_api: &'static str) -> &'static mut Self {
+    pub fn new(event: &'static AfbEvent, scard_api: &'static str, ocpp_api: &'static str) -> &'static mut Self {
         let handle = ManagerHandle {
             data_set: RefCell::new(AuthState::default()),
             event,
             scard_api,
+            ocpp_api,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
@@ -42,6 +44,14 @@ impl ManagerHandle {
 
     pub fn reset(&self) -> Result<AuthState, AfbError> {
         let mut data_set= self.get_state()?;
+
+        AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.ocpp_api,
+                "Transaction",
+                OcppTransaction::Stop(0),
+            )?;
+
         data_set.tagid= String::new();
         data_set.auth=AuthMsg::Idle;
         data_set.imax=0;
@@ -50,7 +60,7 @@ impl ManagerHandle {
         Ok(data_set.clone())
     }
 
-    pub fn nfc_check(&self) -> Result<AuthState, AfbError> {
+    pub fn auth_check(&self) -> Result<AuthState, AfbError> {
         self.event.push(AuthMsg::Pending);
         let check_nfc = || -> Result<String, AfbError> {
             let response = AfbSubCall::call_sync(
@@ -69,7 +79,7 @@ impl ManagerHandle {
                 afb_log_msg!(Notice, self.event,"{}",error);
                 data_set.tagid = String::new();
                 data_set.auth  = AuthMsg::Fail;
-                return afb_error!("nfc-check-fail", "authentication refused")
+                return afb_error!("auth-check-fail", "authentication refused")
             }
             Ok(value) => {
                 data_set.tagid = value;
@@ -80,6 +90,24 @@ impl ManagerHandle {
                 data_set.clone()
             }
         };
+
+        // nfc is ok let check occp tag_id
+        AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.ocpp_api,
+                "Authorize",
+                data_set.tagid.clone(),
+            )?;
+
+
+        // ocpp auth is ok let start ocpp transaction
+        AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.ocpp_api,
+                "Transaction",
+                OcppTransaction::Start(data_set.tagid.clone()),
+            )?;
+
         self.event.push(data_set.auth);
         Ok(response)
     }

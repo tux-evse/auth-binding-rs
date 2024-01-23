@@ -15,13 +15,13 @@ use afbv4::prelude::*;
 use libauth::prelude::*;
 use typesv4::prelude::*;
 
-struct NfcAuthCtx {
+struct AuthRqtCtx {
     mgr: &'static ManagerHandle,
 }
-AfbVerbRegister!(NfcAuthVerb, nfc_auth_cb, NfcAuthCtx);
-fn nfc_auth_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut NfcAuthCtx) -> Result<(), AfbError> {
-    afb_log_msg!(Debug, rqt, "nfc-authentication request");
-    let contract = ctx.mgr.nfc_check()?;
+AfbVerbRegister!(AuthRqtVerb, auth_rqt_cb, AuthRqtCtx);
+fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut AuthRqtCtx) -> Result<(), AfbError> {
+    afb_log_msg!(Debug, rqt, "authentication request");
+    let contract = ctx.mgr.auth_check()?;
     rqt.reply(contract, 0);
     Ok(())
 }
@@ -105,7 +105,7 @@ fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Resul
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
     let event = AfbEvent::new("msg");
-    let mgr = ManagerHandle::new(event, config.nfc_api);
+    let mgr = ManagerHandle::new(event, config.nfc_api, config.ocpp_api);
 
     let state_event = AfbEvent::new("state");
     AfbTimer::new("tic-timer")
@@ -117,14 +117,14 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         }))
         .start()?;
 
-    let auth_nfc = AfbVerb::new("nfc authentication")
-        .set_name("nfc-auth")
-        .set_callback(Box::new(NfcAuthCtx { mgr }))
-        .set_info("Authenticate with nfc")
+    let auth_rqt = AfbVerb::new("session authentication")
+        .set_name("login")
+        .set_callback(Box::new(AuthRqtCtx { mgr }))
+        .set_info("Authenticate with nfc+ocpp")
         .finalize()?;
 
     let auth_reset = AfbVerb::new("reset authentication")
-        .set_name("reset-auth")
+        .set_name("logout")
         .set_callback(Box::new(ResetAuthCtx { mgr }))
         .set_info("Authenticate with reset")
         .finalize()?;
@@ -145,7 +145,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_usage("true|false")
         .finalize()?;
 
-    api.add_verb(auth_nfc);
+    api.add_verb(auth_rqt);
     api.add_verb(auth_reset);
     api.add_verb(subscribe);
     api.add_verb(state_verb);

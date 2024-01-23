@@ -20,6 +20,7 @@ pub(crate) fn to_static_str(value: String) -> &'static str {
 
 pub struct BindingCfg {
     pub nfc_api: &'static str,
+    pub ocpp_api: &'static str,
     pub tic: u32,
 }
 
@@ -30,6 +31,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
 
     // add binding custom converter
     auth_registers()?;
+    ocpp_registers()?;
 
     let uid = if let Ok(value) = jconf.get::<String>("uid") {
         to_static_str(value)
@@ -50,10 +52,12 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     };
 
     let nfc_api = to_static_str(jconf.get::<String>("nfc_api")?);
+    let ocpp_api = to_static_str(jconf.get::<String>("ocpp_api")?);
     let tic= jconf.get::<u32>("tic")?;
 
     let config = BindingCfg {
         nfc_api,
+        ocpp_api,
         tic,
     };
 

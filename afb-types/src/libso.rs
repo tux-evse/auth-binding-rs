@@ -21,6 +21,10 @@ extern crate afbv4;
 #[path = "auth-types.rs"]
 mod auth;
 
+#[path = "ocpp-types.rs"]
+mod ocpp;
+
 pub mod prelude {
     pub use crate::auth::*;
+    pub use crate::ocpp::*;
 }
