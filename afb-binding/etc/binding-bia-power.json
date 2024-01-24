@@ -15,10 +15,10 @@
     "binding": [
         {
             "uid": "ocpp-charger",
-            "api": "charger",
+            "api": "ocpp",
             "station": "Tux-Basic",
             "path": "${CARGO_TARGET_DIR}debug/libafb_ocpp.so",
-            "info": "RUST OCPP-16 Charger client"
+            "info": "RUST OCPP-16 Charger client",
         }
     ]
 }

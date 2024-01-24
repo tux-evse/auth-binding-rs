@@ -22,7 +22,11 @@ pub struct ManagerHandle {
 }
 
 impl ManagerHandle {
-    pub fn new(event: &'static AfbEvent, scard_api: &'static str, ocpp_api: &'static str) -> &'static mut Self {
+    pub fn new(
+        event: &'static AfbEvent,
+        scard_api: &'static str,
+        ocpp_api: &'static str,
+    ) -> &'static mut Self {
         let handle = ManagerHandle {
             data_set: RefCell::new(AuthState::default()),
             event,
@@ -43,19 +47,19 @@ impl ManagerHandle {
     }
 
     pub fn reset(&self) -> Result<AuthState, AfbError> {
-        let mut data_set= self.get_state()?;
+        let mut data_set = self.get_state()?;
 
         AfbSubCall::call_sync(
-                self.event.get_apiv4(),
-                self.ocpp_api,
-                "Transaction",
-                OcppTransaction::Stop(0),
-            )?;
+            self.event.get_apiv4(),
+            self.ocpp_api,
+            "Transaction",
+            OcppTransaction::Stop(0),
+        )?;
 
-        data_set.tagid= String::new();
-        data_set.auth=AuthMsg::Idle;
-        data_set.imax=0;
-        data_set.pmax=0;
+        data_set.tagid = String::new();
+        data_set.auth = AuthMsg::Idle;
+        data_set.imax = 0;
+        data_set.pmax = 0;
         self.event.push(data_set.auth);
         Ok(data_set.clone())
     }
@@ -73,40 +77,41 @@ impl ManagerHandle {
         };
 
         self.event.push(AuthMsg::Pending);
-        let mut data_set= self.get_state()?;
-        let response= match check_nfc() {
+        let mut data_set = self.get_state()?;
+        let response = match check_nfc() {
             Err(error) => {
-                afb_log_msg!(Notice, self.event,"{}",error);
+                afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
-                data_set.auth  = AuthMsg::Fail;
-                return afb_error!("auth-check-fail", "authentication refused")
+                data_set.auth = AuthMsg::Fail;
+                return afb_error!("auth-check-fail", "authentication refused");
             }
             Ok(value) => {
                 data_set.tagid = value;
-                data_set.auth  = AuthMsg::Done;
+                data_set.auth = AuthMsg::Done;
                 // Fulup TBD this should comme from NFC card
-                data_set.imax  = 32;
-                data_set.pmax  = 22;
+                data_set.imax = 32;
+                data_set.pmax = 22;
                 data_set.clone()
             }
         };
 
         // nfc is ok let check occp tag_id
-        AfbSubCall::call_sync(
+        if self.ocpp_api != "" {
+            AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "Authorize",
                 data_set.tagid.clone(),
             )?;
 
-
-        // ocpp auth is ok let start ocpp transaction
-        AfbSubCall::call_sync(
+            // ocpp auth is ok let start ocpp transaction
+            AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "Transaction",
                 OcppTransaction::Start(data_set.tagid.clone()),
             )?;
+        }
 
         self.event.push(data_set.auth);
         Ok(response)
