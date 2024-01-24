@@ -49,12 +49,14 @@ impl ManagerHandle {
     pub fn reset(&self) -> Result<AuthState, AfbError> {
         let mut data_set = self.get_state()?;
 
-        AfbSubCall::call_sync(
-            self.event.get_apiv4(),
-            self.ocpp_api,
-            "Transaction",
-            OcppTransaction::Stop(0),
-        )?;
+        if self.ocpp_api != "" {
+            AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.ocpp_api,
+                "Transaction",
+                OcppTransaction::Stop(0),
+            )?;
+        }
 
         data_set.tagid = String::new();
         data_set.auth = AuthMsg::Idle;
