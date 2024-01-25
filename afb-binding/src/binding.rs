@@ -53,7 +53,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
 
     let nfc_api = to_static_str(jconf.get::<String>("nfc_api")?);
     let ocpp_api = to_static_str(jconf.get::<String>("ocpp_api")?);
-    let tic= jconf.get::<u32>("tic")?;
+    let tic = jconf.get::<u32>("tic")?;
 
     let config = BindingCfg {
         nfc_api,
@@ -65,6 +65,10 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let api = AfbApi::new(api).set_info(info);
     if let Ok(value) = jconf.get::<String>("permission") {
         api.set_permission(AfbPermission::new(to_static_str(value)));
+    };
+
+    if let Ok(value) = jconf.get::<i32>("verbosity") {
+        api.set_verbosity(value);
     };
 
     register_verbs(api, config)?;
