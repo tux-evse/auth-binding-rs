@@ -14,10 +14,6 @@ use crate::prelude::*;
 use afbv4::prelude::*;
 use typesv4::prelude::*;
 
-pub(crate) fn to_static_str(value: String) -> &'static str {
-    Box::leak(value.into_boxed_str())
-}
-
 pub struct BindingCfg {
     pub nfc_api: &'static str,
     pub ocpp_api: &'static str,
@@ -33,27 +29,12 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     auth_registers()?;
     ocpp_registers()?;
 
-    let uid = if let Ok(value) = jconf.get::<String>("uid") {
-        to_static_str(value)
-    } else {
-        "auth"
-    };
-
-    let api = if let Ok(value) = jconf.get::<String>("api") {
-        to_static_str(value)
-    } else {
-        uid
-    };
-
-    let info = if let Ok(value) = jconf.get::<String>("info") {
-        to_static_str(value)
-    } else {
-        ""
-    };
-
-    let nfc_api = to_static_str(jconf.get::<String>("nfc_api")?);
-    let ocpp_api = to_static_str(jconf.get::<String>("ocpp_api")?);
-    let tic = jconf.get::<u32>("tic")?;
+    let uid = jconf.default::<&'static str>("uid", "auth") ?;
+    let api = jconf.default::<&'static str>("api", uid) ?;
+    let info = jconf.default::<&'static str>("info", "") ?;
+    let nfc_api = jconf.default::<&'static str>("nfc_api", "scard") ?;
+    let ocpp_api = jconf.default::<&'static str>("ocpp_api", "ocpp") ?;
+    let tic = jconf.default::<u32>("tic",0)?;
 
     let config = BindingCfg {
         nfc_api,

@@ -108,6 +108,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let mgr = ManagerHandle::new(event, config.nfc_api, config.ocpp_api);
 
     let state_event = AfbEvent::new("state");
+    if config.tic > 0 {
     AfbTimer::new("tic-timer")
         .set_period(config.tic)
         .set_decount(0)
@@ -116,6 +117,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: state_event,
         }))
         .start()?;
+    }
 
     let auth_rqt = AfbVerb::new("session authentication")
         .set_name("login")
