@@ -8,8 +8,7 @@
             "permission": "acl:auth",
             "tic": 5000,
             "nfc_api": "scard",
-            "ocpp_api": "",
-
+            "ocpp_api": "ocpp",
         }
     ]
 }

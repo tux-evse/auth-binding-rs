@@ -18,5 +18,6 @@ afb-binder --name=afb-auth --port=$DEVTOOL_PORT -v \
   --config=$CONFDIR/binder-auth.json \
   --config=$CONFDIR/binding-auth.json \
   --config=$CONFDIR/binding-scard.json \
+  --config=$CONFDIR/binding-bia-power.json \
   --tracereq=all \
   $*
