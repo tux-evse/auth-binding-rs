@@ -102,7 +102,7 @@ impl ManagerHandle {
             AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
-                "Authorize",
+                "authorize",
                 data_set.tagid.clone(),
             )?;
 
@@ -110,7 +110,7 @@ impl ManagerHandle {
             AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
-                "Transaction",
+                "transaction",
                 OcppTransaction::Start(data_set.tagid.clone()),
             )?;
         }
