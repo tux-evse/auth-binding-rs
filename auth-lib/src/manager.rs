@@ -68,31 +68,40 @@ impl ManagerHandle {
 
     pub fn auth_check(&self) -> Result<AuthState, AfbError> {
         self.event.push(AuthMsg::Pending);
-        let check_nfc = || -> Result<String, AfbError> {
+        let check_nfc = || -> Result<JsoncObj, AfbError> {
             let response = AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.scard_api,
                 "get-contract",
                 true,
             )?;
-            response.get::<String>(0)
+            response.get::<JsoncObj>(0)
         };
 
         self.event.push(AuthMsg::Pending);
-        let mut data_set = self.get_state()?;
         let response = match check_nfc() {
             Err(error) => {
+                let mut data_set = self.get_state()?;
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
                 return afb_error!("auth-check-fail", "authentication refused");
             }
-            Ok(value) => {
-                data_set.tagid = value;
-                data_set.auth = AuthMsg::Done;
-                // Fulup TBD this should comme from NFC card
-                data_set.imax = 32;
-                data_set.pmax = 22;
+            Ok(jsonc) => {
+                // If NFC does not contain a value JSON, use default values
+                let mut data_set = self.get_state()?;
+                match jsonc.get::<String>("tagid") {
+                    Ok(value) => {
+                        data_set.tagid = value;
+                        data_set.imax = jsonc.default::<u32>("imax", 32)?;
+                        data_set.pmax = jsonc.default::<u32>("pmax", 22)?;
+                    }
+                    Err(_) => {
+                        data_set.tagid = jsonc.to_string();
+                        data_set.imax = 32;
+                        data_set.pmax = 22;
+                    }
+                }
                 data_set.clone()
             }
         };
@@ -103,7 +112,7 @@ impl ManagerHandle {
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "authorize",
-                data_set.tagid.clone(),
+                response.tagid.clone(),
             )?;
 
             // ocpp auth is ok let start ocpp transaction
@@ -111,11 +120,11 @@ impl ManagerHandle {
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "transaction",
-                OcppTransaction::Start(data_set.tagid.clone()),
+                OcppTransaction::Start(response.tagid.clone()),
             )?;
         }
 
-        self.event.push(data_set.auth);
+        self.event.push(response.auth);
         Ok(response)
     }
 }
