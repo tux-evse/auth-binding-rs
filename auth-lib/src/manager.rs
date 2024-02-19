@@ -62,44 +62,69 @@ impl ManagerHandle {
         data_set.auth = AuthMsg::Idle;
         data_set.imax = 0;
         data_set.pmax = 0;
+        data_set.ocpp_check=true;
         self.event.push(data_set.auth);
         Ok(data_set.clone())
     }
 
     pub fn auth_check(&self) -> Result<AuthState, AfbError> {
+        let mut data_set = self.get_state()?;
         self.event.push(AuthMsg::Pending);
-        let check_nfc = || -> Result<JsoncObj, AfbError> {
+        let check_tagid = || -> Result<String, AfbError> {
+            let response = AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.scard_api,
+                "get-tagid",
+                true,
+            )?;
+            response.get::<String>(0)
+        };
+
+        let check_contract = || -> Result<String, AfbError> {
             let response = AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.scard_api,
                 "get-contract",
                 true,
             )?;
-            response.get::<JsoncObj>(0)
+            response.get::<JsonC>(0)
         };
 
-        self.event.push(AuthMsg::Pending);
-        let response = match check_nfc() {
+        let response = match check_tagid() {
             Err(error) => {
-                let mut data_set = self.get_state()?;
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
                 return afb_error!("auth-check-fail", "authentication refused");
             }
-            Ok(jsonc) => {
-                // If NFC does not contain a value JSON, use default values
-                let mut data_set = self.get_state()?;
-                match jsonc.get::<String>("tagid") {
-                    Ok(value) => {
-                        data_set.tagid = value;
+            Ok(nfc_data) => {
                         data_set.imax = jsonc.default::<u32>("imax", 32)?;
                         data_set.pmax = jsonc.default::<u32>("pmax", 22)?;
+                        data_set.ocpp_check = jsonc.default::<bool>("ocpp", true)?;
+                 }
+                data_set.clone()
+        };
+
+        let response = match check_contract() {
+            Err(error) => {
+                afb_log_msg!(Notice, self.event, "{}", error);
+                data_set.tagid = String::new();
+                data_set.auth = AuthMsg::Fail;
+                return afb_error!("auth-check-fail", "authentication refused");
+            }
+            Ok(nfc_data) => {
+                match JsoncObj::parse(nfc_data.as_str()) {
+                    Ok(jsonc) => {
+                        data_set.tagid = jsonc.get::<String>("tagid")?;
+                        data_set.imax = jsonc.default::<u32>("imax", 32)?;
+                        data_set.pmax = jsonc.default::<u32>("pmax", 22)?;
+                        data_set.ocpp_check = jsonc.default::<bool>("ocpp", true)?;
                     }
                     Err(_) => {
-                        data_set.tagid = jsonc.to_string();
+                        data_set.tagid = nfc_data;
                         data_set.imax = 32;
                         data_set.pmax = 22;
+                        data_set.ocpp_check=true;
                     }
                 }
                 data_set.clone()
@@ -107,7 +132,7 @@ impl ManagerHandle {
         };
 
         // nfc is ok let check occp tag_id
-        if self.ocpp_api != "" {
+        if self.ocpp_api != "" && data_set.ocpp_check {
             AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
