@@ -62,7 +62,7 @@ impl ManagerHandle {
         data_set.auth = AuthMsg::Idle;
         data_set.imax = 0;
         data_set.pmax = 0;
-        data_set.ocpp_check=true;
+        data_set.ocpp_check = true;
         self.event.push(data_set.auth);
         Ok(data_set.clone())
     }
@@ -71,65 +71,52 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
         self.event.push(AuthMsg::Pending);
         let check_tagid = || -> Result<String, AfbError> {
-            let response = AfbSubCall::call_sync(
-                self.event.get_apiv4(),
-                self.scard_api,
-                "get-tagid",
-                true,
-            )?;
+            let response =
+                AfbSubCall::call_sync(self.event.get_apiv4(), self.scard_api, "get-tagid", true)?;
             response.get::<String>(0)
         };
 
-        let check_contract = || -> Result<String, AfbError> {
+        let check_contract = || -> Result<JsoncObj, AfbError> {
             let response = AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.scard_api,
                 "get-contract",
                 true,
             )?;
-            response.get::<JsonC>(0)
+            response.get::<JsoncObj>(0)
         };
 
-        let response = match check_tagid() {
+        match check_tagid() {
             Err(error) => {
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
-                return afb_error!("auth-check-fail", "authentication refused");
+                return afb_error!(
+                    "auth-check-fail",
+                    "invalid nfc tagid authentication refused"
+                );
             }
             Ok(nfc_data) => {
-                        data_set.imax = jsonc.default::<u32>("imax", 32)?;
-                        data_set.pmax = jsonc.default::<u32>("pmax", 22)?;
-                        data_set.ocpp_check = jsonc.default::<bool>("ocpp", true)?;
-                 }
-                data_set.clone()
-        };
+                data_set.tagid = nfc_data;
+                data_set.imax = 32;
+                data_set.pmax = 22;
+                data_set.ocpp_check = true;
+            }
+        }
 
-        let response = match check_contract() {
+        match check_contract() {
             Err(error) => {
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
-                return afb_error!("auth-check-fail", "authentication refused");
+                return afb_error!("auth-check-fail", "invalid subscription contract");
             }
-            Ok(nfc_data) => {
-                match JsoncObj::parse(nfc_data.as_str()) {
-                    Ok(jsonc) => {
-                        data_set.tagid = jsonc.get::<String>("tagid")?;
-                        data_set.imax = jsonc.default::<u32>("imax", 32)?;
-                        data_set.pmax = jsonc.default::<u32>("pmax", 22)?;
-                        data_set.ocpp_check = jsonc.default::<bool>("ocpp", true)?;
-                    }
-                    Err(_) => {
-                        data_set.tagid = nfc_data;
-                        data_set.imax = 32;
-                        data_set.pmax = 22;
-                        data_set.ocpp_check=true;
-                    }
-                }
-                data_set.clone()
+            Ok(jsonc) => {
+                data_set.imax = jsonc.default::<u32>("imax", 32)?;
+                data_set.pmax = jsonc.default::<u32>("pmax", 22)?;
+                data_set.ocpp_check = jsonc.default::<bool>("ocpp", true)?;
             }
-        };
+        }
 
         // nfc is ok let check occp tag_id
         if self.ocpp_api != "" && data_set.ocpp_check {
@@ -137,7 +124,7 @@ impl ManagerHandle {
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "authorize",
-                response.tagid.clone(),
+                data_set.tagid.clone(),
             )?;
 
             // ocpp auth is ok let start ocpp transaction
@@ -145,11 +132,11 @@ impl ManagerHandle {
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "transaction",
-                OcppTransaction::Start(response.tagid.clone()),
+                OcppTransaction::Start(data_set.tagid.clone()),
             )?;
         }
 
-        self.event.push(response.auth);
-        Ok(response)
+        self.event.push(AuthMsg::Done);
+        Ok(data_set.clone())
     }
 }
