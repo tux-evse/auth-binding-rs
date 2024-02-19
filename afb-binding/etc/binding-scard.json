@@ -10,7 +10,6 @@
                 "info": "Demo config with Mifare Classic",
                 "reader": "ACR122U",
                 "verbose": 1,
-                "timeout":30,
                 "keys": [
                     {
                         "uid": "key-a",
@@ -44,36 +43,52 @@
                         "action": "uuid"
                     },
                     {
-                        "uid": "get-contract",
-                        "info": "retrieve contract ID from NFC",
+                        "uid": "get-tagid",
+                        "info": "retrieve ocpp tagid (sev:3)",
                         "action": "read",
                         "sec": 3,
                         "len": 48,
                         "key": "key-a"
                     },
                     {
-                        "uid": "get-name",
-                        "info": "get customer contact info",
+                        "uid": "get-contract",
+                        "info": "get customer subscription contract data (sec:4)",
                         "action": "read",
                         "sec": 4,
                         "len": 48,
                         "key": "key-a"
                     },
                     {
-                        "uid": "get-status",
-                        "info": "get current status from scard",
+                        "uid": "get-name",
+                        "info": "get current user name (sec:5)",
                         "action": "read",
                         "sec": 5,
                         "len": 48,
                         "key": "key-a"
                     },
                     {
-                        "uid": "set-status",
-                        "info": "write current status in scard",
+                        "uid": "set-tagid",
+                        "info": "write contract into sector:3",
+                        "action": "write",
+                        "sec": 3,
+                        "len": 48,
+                        "key": "key-b"
+                    },                    {
+                        "uid": "set-contract",
+                        "info": "write contract into sector:",
+                        "action": "write",
+                        "sec": 4,
+                        "len": 48,
+                        "key": "key-b"
+                    },
+
+                    {
+                        "uid": "set-name",
+                        "info": "write user name into sector:5",
                         "action": "write",
                         "sec": 5,
                         "len": 48,
-                        "key": "key-b",
+                        "key": "key-b"
                     }
                 ]
             }

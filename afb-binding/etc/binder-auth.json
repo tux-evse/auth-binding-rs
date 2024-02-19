@@ -10,5 +10,10 @@
     "ws-server": [
         "unix:/tmp/api/auth",
         "tcp:*:12381/auth"
-    ]
+    ],
+    "ws-client": [
+        "private:unix:/tmp/api/engy",
+        "private:unix:/tmp/api/chmgr"
+    ],
+
 }
