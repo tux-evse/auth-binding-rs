@@ -15,28 +15,28 @@ use afbv4::prelude::*;
 use libauth::prelude::*;
 use typesv4::prelude::*;
 
-struct AuthRqtCtx {
+struct LoginRqtCtx {
     mgr: &'static ManagerHandle,
 }
-AfbVerbRegister!(AuthRqtVerb, auth_rqt_cb, AuthRqtCtx);
-fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut AuthRqtCtx) -> Result<(), AfbError> {
-    afb_log_msg!(Debug, rqt, "authentication request");
-    let contract = ctx.mgr.auth_check()?;
+AfbVerbRegister!(LoginRqtVerb, auth_rqt_cb, LoginRqtCtx);
+fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut LoginRqtCtx) -> Result<(), AfbError> {
+    afb_log_msg!(Debug, rqt, "authentication login request");
+    let contract = ctx.mgr.login()?;
     rqt.reply(contract, 0);
     Ok(())
 }
 
-struct ResetAuthCtx {
+struct LogoutRqtCtx {
     mgr: &'static ManagerHandle,
 }
-AfbVerbRegister!(ResetAuthVerb, reset_auth_cb, ResetAuthCtx);
+AfbVerbRegister!(LogoutRqtVerb, reset_auth_cb, LogoutRqtCtx);
 fn reset_auth_cb(
     rqt: &AfbRequest,
     _args: &AfbData,
-    ctx: &mut ResetAuthCtx,
+    ctx: &mut LogoutRqtCtx,
 ) -> Result<(), AfbError> {
-    afb_log_msg!(Debug, rqt, "reset-authentication request");
-    let contract = ctx.mgr.reset()?;
+    afb_log_msg!(Debug, rqt, "authentication logout request");
+    let contract = ctx.mgr.logout()?;
     rqt.reply(contract, 0);
     Ok(())
 }
@@ -121,14 +121,14 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
 
     let auth_rqt = AfbVerb::new("session authentication")
         .set_name("login")
-        .set_callback(Box::new(AuthRqtCtx { mgr }))
-        .set_info("Authenticate with nfc+ocpp")
+        .set_callback(Box::new(LoginRqtCtx { mgr }))
+        .set_info("Login authentication (nfc+ocpp)")
         .finalize()?;
 
     let auth_reset = AfbVerb::new("reset authentication")
         .set_name("logout")
-        .set_callback(Box::new(ResetAuthCtx { mgr }))
-        .set_info("Authenticate with reset")
+        .set_callback(Box::new(LogoutRqtCtx { mgr }))
+        .set_info("Logout authenticate")
         .finalize()?;
 
     let state_verb = AfbVerb::new("auth-state")

@@ -46,8 +46,18 @@ impl ManagerHandle {
         }
     }
 
-    pub fn reset(&self) -> Result<AuthState, AfbError> {
+    pub fn logout(&self) -> Result<AuthState, AfbError> {
         let mut data_set = self.get_state()?;
+        match data_set.auth {
+            AuthMsg::Done => {}
+            _ => {
+                return afb_error!(
+                    "auth-logout-fail",
+                    "current session not authenticate status:{:?}",
+                    data_set.auth
+                );
+            }
+        }
 
         if self.ocpp_api != "" {
             AfbSubCall::call_sync(
@@ -67,8 +77,19 @@ impl ManagerHandle {
         Ok(data_set.clone())
     }
 
-    pub fn auth_check(&self) -> Result<AuthState, AfbError> {
+    pub fn login(&self) -> Result<AuthState, AfbError> {
         let mut data_set = self.get_state()?;
+        match data_set.auth {
+            AuthMsg::Done => {
+                return afb_error!(
+                    "auth-login-fail",
+                    "current session already authenticate status:{:?}",
+                    data_set.auth
+                );
+            }
+            _ => {}
+        }
+
         self.event.push(AuthMsg::Pending);
         let check_tagid = || -> Result<String, AfbError> {
             let response =
@@ -92,7 +113,7 @@ impl ManagerHandle {
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
                 return afb_error!(
-                    "auth-check-fail",
+                    "auth-login-fail",
                     "invalid nfc tagid authentication refused"
                 );
             }
@@ -109,7 +130,7 @@ impl ManagerHandle {
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
-                return afb_error!("auth-check-fail", "invalid subscription contract");
+                return afb_error!("auth-login-fail", "invalid subscription contract");
             }
             Ok(jsonc) => {
                 data_set.imax = jsonc.default::<u32>("imax", 32)?;
@@ -135,8 +156,8 @@ impl ManagerHandle {
                 OcppTransaction::Start(data_set.tagid.clone()),
             )?;
         }
-
-        self.event.push(AuthMsg::Done);
+        data_set.auth = AuthMsg::Done;
+        self.event.push(data_set.auth);
         Ok(data_set.clone())
     }
 }
