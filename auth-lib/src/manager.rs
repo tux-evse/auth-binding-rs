@@ -59,7 +59,14 @@ impl ManagerHandle {
             }
         }
 
-        if self.ocpp_api != "" {
+        data_set.tagid = String::new();
+        data_set.auth = AuthMsg::Idle;
+        data_set.imax = 0;
+        data_set.pmax = 0;
+        data_set.ocpp_check = true;
+        self.event.push(data_set.auth);
+
+        if data_set.ocpp_check {
             AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
@@ -68,12 +75,6 @@ impl ManagerHandle {
             )?;
         }
 
-        data_set.tagid = String::new();
-        data_set.auth = AuthMsg::Idle;
-        data_set.imax = 0;
-        data_set.pmax = 0;
-        data_set.ocpp_check = true;
-        self.event.push(data_set.auth);
         Ok(data_set.clone())
     }
 
@@ -140,7 +141,7 @@ impl ManagerHandle {
         }
 
         // nfc is ok let check occp tag_id
-        if self.ocpp_api != "" && data_set.ocpp_check {
+        if data_set.ocpp_check {
             AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,

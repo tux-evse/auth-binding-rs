@@ -29,8 +29,8 @@ fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut LoginRqtCtx) -> Resu
 struct LogoutRqtCtx {
     mgr: &'static ManagerHandle,
 }
-AfbVerbRegister!(LogoutRqtVerb, reset_auth_cb, LogoutRqtCtx);
-fn reset_auth_cb(
+AfbVerbRegister!(LogoutRqtVerb, logout_auth_cb, LogoutRqtCtx);
+fn logout_auth_cb(
     rqt: &AfbRequest,
     _args: &AfbData,
     ctx: &mut LogoutRqtCtx,
