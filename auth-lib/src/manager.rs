@@ -49,7 +49,7 @@ impl ManagerHandle {
     pub fn logout(&self) -> Result<AuthState, AfbError> {
         let mut data_set = self.get_state()?;
         match data_set.auth {
-            AuthMsg::Done => {}
+            AuthMsg::Done => {} // session is active let's logout
             _ => {
                 return afb_error!(
                     "auth-logout-fail",
@@ -63,7 +63,6 @@ impl ManagerHandle {
         data_set.auth = AuthMsg::Idle;
         data_set.imax = 0;
         data_set.pmax = 0;
-        data_set.ocpp_check = true;
         self.event.push(data_set.auth);
 
         if data_set.ocpp_check {
