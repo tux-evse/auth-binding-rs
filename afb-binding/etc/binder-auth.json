@@ -13,7 +13,6 @@
     ],
     "ws-client": [
         "private:unix:/tmp/api/engy",
-        "private:unix:/tmp/api/chmgr"
     ],
 
 }
