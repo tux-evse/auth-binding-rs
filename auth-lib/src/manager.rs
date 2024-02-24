@@ -19,6 +19,7 @@ pub struct ManagerHandle {
     event: &'static AfbEvent,
     scard_api: &'static str,
     ocpp_api: &'static str,
+    engy_api: &'static str,
 }
 
 impl ManagerHandle {
@@ -26,12 +27,14 @@ impl ManagerHandle {
         event: &'static AfbEvent,
         scard_api: &'static str,
         ocpp_api: &'static str,
+        engy_api: &'static str,
     ) -> &'static mut Self {
         let handle = ManagerHandle {
             data_set: RefCell::new(AuthState::default()),
             event,
             scard_api,
             ocpp_api,
+            engy_api,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
@@ -44,6 +47,16 @@ impl ManagerHandle {
             Err(_) => return afb_error!("charging-manager-update", "fail to access &mut data_set"),
             Ok(value) => Ok(value),
         }
+    }
+
+    pub fn update_engy_state(&self, engy_state: EnergyState) -> Result<(), AfbError> {
+        AfbSubCall::call_sync(
+            self.event.get_apiv4(),
+            self.ocpp_api,
+            "push-mesure",
+            engy_state,
+        )?;
+        Ok(())
     }
 
     pub fn logout(&self) -> Result<AuthState, AfbError> {
@@ -66,6 +79,13 @@ impl ManagerHandle {
         self.event.push(data_set.auth);
 
         if data_set.ocpp_check {
+            AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.engy_api,
+                "state",
+                EnergyAction::UNSUBSCRIBE,
+            )?;
+
             AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
@@ -154,6 +174,13 @@ impl ManagerHandle {
                 self.ocpp_api,
                 "transaction",
                 OcppTransaction::Start(data_set.tagid.clone()),
+            )?;
+
+            AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.engy_api,
+                "state",
+                EnergyAction::SUBSCRIBE,
             )?;
         }
         data_set.auth = AuthMsg::Done;

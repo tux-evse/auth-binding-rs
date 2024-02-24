@@ -24,7 +24,11 @@ mod auth;
 #[path = "ocpp-types.rs"]
 mod ocpp;
 
+#[path = "engy-types.rs"]
+mod engy;
+
 pub mod prelude {
+    pub use crate::engy::*;
     pub use crate::auth::*;
     pub use crate::ocpp::*;
 }

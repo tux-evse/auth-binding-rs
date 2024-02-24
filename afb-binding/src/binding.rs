@@ -17,6 +17,7 @@ use typesv4::prelude::*;
 pub struct BindingCfg {
     pub nfc_api: &'static str,
     pub ocpp_api: &'static str,
+    pub engy_api: &'static str,
     pub tic: u32,
 }
 
@@ -28,17 +29,20 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // add binding custom converter
     auth_registers()?;
     ocpp_registers()?;
+    engy_registers()?;
 
     let uid = jconf.default::<&'static str>("uid", "auth")?;
     let api = jconf.default::<&'static str>("api", uid)?;
     let info = jconf.default::<&'static str>("info", "")?;
     let nfc_api = jconf.default::<&'static str>("nfc_api", "scard")?;
     let ocpp_api = jconf.default::<&'static str>("ocpp_api", "ocpp")?;
+    let engy_api = jconf.default::<&'static str>("engy_api", "engy")?;
     let tic = jconf.default::<u32>("tic", 0)?;
 
     let config = BindingCfg {
         nfc_api,
         ocpp_api,
+        engy_api,
         tic,
     };
 

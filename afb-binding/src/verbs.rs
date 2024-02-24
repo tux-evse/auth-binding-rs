@@ -91,6 +91,18 @@ fn state_request_cb(
     Ok(())
 }
 
+struct EngyEvtCtx {
+    mgr: &'static ManagerHandle,
+}
+// report value meter to ocpp backend
+AfbEventRegister!(EngyEvtCtrl, engy_event_cb, EngyEvtCtx);
+fn engy_event_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut EngyEvtCtx) -> Result<(), AfbError> {
+    let state = args.get::<&EnergyState>(0)?;
+    afb_log_msg!(Debug, evt, "energy:{:?}", state.clone());
+    ctx.mgr.update_engy_state(state.clone())?;
+    Ok(())
+}
+
 struct TimerCtx {
     mgr: &'static ManagerHandle,
     evt: &'static AfbEvent,
@@ -105,18 +117,23 @@ fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Resul
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
     let event = AfbEvent::new("msg");
-    let mgr = ManagerHandle::new(event, config.nfc_api, config.ocpp_api);
+    let mgr = ManagerHandle::new(event, config.nfc_api, config.ocpp_api, config.engy_api);
+
+    let engy_handler = AfbEvtHandler::new("energy-evt")
+        .set_pattern(to_static_str(format!("{}/*", config.engy_api)))
+        .set_callback(Box::new(EngyEvtCtx { mgr }))
+        .finalize()?;
 
     let state_event = AfbEvent::new("state");
     if config.tic > 0 {
-    AfbTimer::new("tic-timer")
-        .set_period(config.tic)
-        .set_decount(0)
-        .set_callback(Box::new(TimerCtx {
-            mgr,
-            evt: state_event,
-        }))
-        .start()?;
+        AfbTimer::new("tic-timer")
+            .set_period(config.tic)
+            .set_decount(0)
+            .set_callback(Box::new(TimerCtx {
+                mgr,
+                evt: state_event,
+            }))
+            .start()?;
     }
 
     let auth_rqt = AfbVerb::new("session authentication")
@@ -147,6 +164,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_usage("true|false")
         .finalize()?;
 
+    api.add_evt_handler(engy_handler);
     api.add_verb(auth_rqt);
     api.add_verb(auth_reset);
     api.add_verb(subscribe);
