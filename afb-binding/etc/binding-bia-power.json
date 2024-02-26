@@ -20,6 +20,7 @@
             "path": "/usr/redpesk/ocpp-binding-rs/lib/libafb_ocpp.so",
             "info": "RUST OCPP-16 Charger client",
             "engy_api": "engy",
+            "verbosity": 9,
         }
     ]
 }
