@@ -11,11 +11,11 @@
  */
 
 use afbv4::prelude::*;
-use std::cell::{RefCell, RefMut};
+use std::sync::{Mutex, MutexGuard};
 use typesv4::prelude::*;
 
 pub struct ManagerHandle {
-    data_set: RefCell<AuthState>,
+    data_set: Mutex<AuthState>,
     event: &'static AfbEvent,
     scard_api: &'static str,
     ocpp_api: &'static str,
@@ -30,7 +30,7 @@ impl ManagerHandle {
         engy_api: &'static str,
     ) -> &'static mut Self {
         let handle = ManagerHandle {
-            data_set: RefCell::new(AuthState::default()),
+            data_set: Mutex::new(AuthState::default()),
             event,
             scard_api,
             ocpp_api,
@@ -42,11 +42,9 @@ impl ManagerHandle {
     }
 
     #[track_caller]
-    pub fn get_state(&self) -> Result<RefMut<'_, AuthState>, AfbError> {
-        match self.data_set.try_borrow_mut() {
-            Err(_) => return afb_error!("charging-manager-update", "fail to access &mut data_set"),
-            Ok(value) => Ok(value),
-        }
+    pub fn get_state(&self) -> Result<MutexGuard<'_, AuthState>, AfbError> {
+        let guard = self.data_set.lock().unwrap();
+        Ok(guard)
     }
 
     pub fn update_engy_state(&self, engy_state: EnergyState) -> Result<(), AfbError> {
