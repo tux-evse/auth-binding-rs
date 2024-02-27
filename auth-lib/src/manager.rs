@@ -51,7 +51,7 @@ impl ManagerHandle {
         AfbSubCall::call_sync(
             self.event.get_apiv4(),
             self.ocpp_api,
-            "push-mesure",
+            "push-measure",
             engy_state,
         )?;
         Ok(())

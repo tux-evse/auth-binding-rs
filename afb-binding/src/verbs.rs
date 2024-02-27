@@ -15,6 +15,30 @@ use afbv4::prelude::*;
 use libauth::prelude::*;
 use typesv4::prelude::*;
 
+struct EngyEvtCtx {
+    mgr: &'static ManagerHandle,
+}
+// report value meter to ocpp backend
+AfbEventRegister!(EngyEvtCtrl, engy_event_cb, EngyEvtCtx);
+fn engy_event_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut EngyEvtCtx) -> Result<(), AfbError> {
+    let state = args.get::<&EnergyState>(0)?;
+    afb_log_msg!(Debug, evt, "energy:{:?}", state.clone());
+    ctx.mgr.update_engy_state(state.clone())?;
+    Ok(())
+}
+
+struct TimerCtx {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+}
+// send charging state every tic ms.
+AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
+fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
+    let state = ctx.mgr.get_state()?;
+    ctx.evt.push(state.clone());
+    Ok(())
+}
+
 struct LoginRqtCtx {
     mgr: &'static ManagerHandle,
 }
@@ -88,30 +112,6 @@ fn state_request_cb(
             rqt.reply(AFB_NO_DATA, 0);
         }
     }
-    Ok(())
-}
-
-struct EngyEvtCtx {
-    mgr: &'static ManagerHandle,
-}
-// report value meter to ocpp backend
-AfbEventRegister!(EngyEvtCtrl, engy_event_cb, EngyEvtCtx);
-fn engy_event_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut EngyEvtCtx) -> Result<(), AfbError> {
-    let state = args.get::<&EnergyState>(0)?;
-    afb_log_msg!(Debug, evt, "energy:{:?}", state.clone());
-    ctx.mgr.update_engy_state(state.clone())?;
-    Ok(())
-}
-
-struct TimerCtx {
-    mgr: &'static ManagerHandle,
-    evt: &'static AfbEvent,
-}
-// send charging state every tic ms.
-AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
-fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
-    let state = ctx.mgr.get_state()?;
-    ctx.evt.push(state.clone());
     Ok(())
 }
 
