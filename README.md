@@ -8,4 +8,4 @@ Charging manager micro service
 
 ## nfc config
 
-* check scard-binding-rs README
+* check scard-binding-rs README-
