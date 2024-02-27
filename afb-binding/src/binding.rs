@@ -30,6 +30,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     auth_registers()?;
     ocpp_registers()?;
     engy_registers()?;
+    chmgr_registers()?;
 
     let uid = jconf.default::<&'static str>("uid", "auth")?;
     let api = jconf.default::<&'static str>("api", uid)?;

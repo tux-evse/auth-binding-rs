@@ -57,7 +57,7 @@ impl ManagerHandle {
         Ok(())
     }
 
-    pub fn logout(&self) -> Result<AuthState, AfbError> {
+    pub fn logout(&self, energy_session: i32) -> Result<AuthState, AfbError> {
         let mut data_set = self.get_state()?;
         match data_set.auth {
             AuthMsg::Done => {} // session is active let's logout
@@ -88,7 +88,14 @@ impl ManagerHandle {
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "transaction",
-                OcppTransaction::Stop(0),
+                OcppTransaction::Stop(energy_session),
+            )?;
+
+            AfbSubCall::call_sync(
+                self.event.get_apiv4(),
+                self.ocpp_api,
+                "status-notification",
+                OcppChargerStatus::Available,
             )?;
         }
 

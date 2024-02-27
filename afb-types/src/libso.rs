@@ -27,8 +27,13 @@ mod ocpp;
 #[path = "engy-types.rs"]
 mod engy;
 
+#[path = "chmgr-types.rs"]
+mod chmgr;
+
+
 pub mod prelude {
     pub use crate::engy::*;
     pub use crate::auth::*;
     pub use crate::ocpp::*;
+    pub use crate::chmgr::*;
 }

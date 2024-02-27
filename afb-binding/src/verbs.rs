@@ -56,11 +56,12 @@ struct LogoutRqtCtx {
 AfbVerbRegister!(LogoutRqtVerb, logout_auth_cb, LogoutRqtCtx);
 fn logout_auth_cb(
     rqt: &AfbRequest,
-    _args: &AfbData,
+    args: &AfbData,
     ctx: &mut LogoutRqtCtx,
 ) -> Result<(), AfbError> {
     afb_log_msg!(Debug, rqt, "authentication logout request");
-    let contract = ctx.mgr.logout()?;
+    let energy_session= args.get::<i32>(0)?;
+    let contract = ctx.mgr.logout(energy_session)?;
     rqt.reply(contract, 0);
     Ok(())
 }
