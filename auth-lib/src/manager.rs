@@ -107,6 +107,7 @@ impl ManagerHandle {
         match data_set.auth {
             AuthMsg::Done => {
                 // we're already logged-in let handle SSO
+                afb_log_msg!(Notice, self.event, "Session Single Sign On: tagid:{}", data_set.tagid);
                 self.event.push(data_set.auth);
                 return Ok(data_set.clone())
             }
