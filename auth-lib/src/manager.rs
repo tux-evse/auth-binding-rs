@@ -106,11 +106,9 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
         match data_set.auth {
             AuthMsg::Done => {
-                return afb_error!(
-                    "auth-login-fail",
-                    "current session already authenticate status:{:?}",
-                    data_set.auth
-                );
+                // we're already logged-in let handle SSO
+                self.event.push(data_set.auth);
+                return Ok(data_set.clone())
             }
             _ => {}
         }
