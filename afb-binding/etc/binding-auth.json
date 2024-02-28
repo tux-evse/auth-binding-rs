@@ -6,7 +6,7 @@
             "path": "/usr/redpesk/auth-binding-rs/lib/libafb_auth.so",
             "info": "set/get api",
             "permission": "acl:auth",
-            "tic": 30000,
+            "tic": 0,
             "nfc_api": "scard",
             "ocpp_api": "ocpp",
             "engy_api": "engy",
