@@ -19,8 +19,9 @@ struct EngyEvtCtx {
     mgr: &'static ManagerHandle,
 }
 // report value meter to ocpp backend
-AfbEventRegister!(EngyEvtCtrl, engy_event_cb, EngyEvtCtx);
-fn engy_event_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut EngyEvtCtx) -> Result<(), AfbError> {
+// AfbEventRegister!(EngyEvtCtrl, engy_event_cb, EngyEvtCtx);
+fn engy_event_cb(evt: &AfbEventMsg, args: &AfbRqtData, ctx: &AfbCtxData) -> Result<(), AfbError> {
+    let ctx = ctx.get_ref::<EngyEvtCtx>()?;
     let state = args.get::<&EnergyState>(0)?;
     afb_log_msg!(Debug, evt, "energy:{:?}", state.clone());
     ctx.mgr.update_engy_state(state.clone())?;
@@ -32,8 +33,9 @@ struct TimerCtx {
     evt: &'static AfbEvent,
 }
 // send charging state every tic ms.
-AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
-fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
+// AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
+fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &AfbCtxData) -> Result<(), AfbError> {
+    let ctx = ctx.get_ref::<TimerCtx>()?;
     let state = ctx.mgr.get_state()?;
     ctx.evt.push(state.clone());
     Ok(())
@@ -42,8 +44,9 @@ fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Resul
 struct LoginRqtCtx {
     mgr: &'static ManagerHandle,
 }
-AfbVerbRegister!(LoginRqtVerb, auth_rqt_cb, LoginRqtCtx);
-fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut LoginRqtCtx) -> Result<(), AfbError> {
+// AfbVerbRegister!(LoginRqtVerb, auth_rqt_cb, LoginRqtCtx);
+fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbRqtData, ctx: &AfbCtxData) -> Result<(), AfbError> {
+    let ctx = ctx.get_ref::<LoginRqtCtx>()?;
     afb_log_msg!(Debug, rqt, "authentication login request");
     let contract = ctx.mgr.login()?;
     rqt.reply(contract, 0);
@@ -53,12 +56,13 @@ fn auth_rqt_cb(rqt: &AfbRequest, _args: &AfbData, ctx: &mut LoginRqtCtx) -> Resu
 struct LogoutRqtCtx {
     mgr: &'static ManagerHandle,
 }
-AfbVerbRegister!(LogoutRqtVerb, logout_auth_cb, LogoutRqtCtx);
+// AfbVerbRegister!(LogoutRqtVerb, logout_auth_cb, LogoutRqtCtx);
 fn logout_auth_cb(
     rqt: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut LogoutRqtCtx,
+    args: &AfbRqtData,
+    ctx: &AfbCtxData,
 ) -> Result<(), AfbError> {
+    let ctx = ctx.get_ref::<LogoutRqtCtx>()?;
     afb_log_msg!(Debug, rqt, "authentication logout request");
     let energy_session= args.get::<i32>(0)?;
     let contract = ctx.mgr.logout(energy_session)?;
@@ -69,12 +73,13 @@ fn logout_auth_cb(
 struct SubscribeData {
     event: &'static AfbEvent,
 }
-AfbVerbRegister!(SubscribeCtrl, subscribe_callback, SubscribeData);
+// AfbVerbRegister!(SubscribeCtrl, subscribe_callback, SubscribeData);
 fn subscribe_callback(
     request: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut SubscribeData,
+    args: &AfbRqtData,
+    ctx: &AfbCtxData,
 ) -> Result<(), AfbError> {
+    let ctx = ctx.get_ref::<SubscribeData>()?;
     let subcription = args.get::<bool>(0)?;
     if subcription {
         ctx.event.subscribe(request)?;
@@ -89,12 +94,13 @@ struct StateRequestCtx {
     mgr: &'static ManagerHandle,
     evt: &'static AfbEvent,
 }
-AfbVerbRegister!(StateRequestVerb, state_request_cb, StateRequestCtx);
+// AfbVerbRegister!(StateRequestVerb, state_request_cb, StateRequestCtx);
 fn state_request_cb(
     rqt: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut StateRequestCtx,
+    args: &AfbRqtData,
+    ctx: &AfbCtxData,
 ) -> Result<(), AfbError> {
+    let ctx = ctx.get_ref::<StateRequestCtx>()?;
     match args.get::<&AuthAction>(0)? {
         AuthAction::READ => {
             let data_set = ctx.mgr.get_state()?;
@@ -122,7 +128,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
 
     let engy_handler = AfbEvtHandler::new("energy-evt")
         .set_pattern(to_static_str(format!("{}/*", config.engy_api)))
-        .set_callback(Box::new(EngyEvtCtx { mgr }))
+        .set_callback(engy_event_cb)
+        .set_context(EngyEvtCtx { mgr })
         .finalize()?;
 
     let state_event = AfbEvent::new("state");
@@ -130,37 +137,42 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         AfbTimer::new("tic-timer")
             .set_period(config.tic)
             .set_decount(0)
-            .set_callback(Box::new(TimerCtx {
+            .set_callback(timer_callback)
+            .set_context(TimerCtx {
                 mgr,
                 evt: state_event,
-            }))
+            })
             .start()?;
     }
 
     let auth_rqt = AfbVerb::new("session authentication")
         .set_name("login")
-        .set_callback(Box::new(LoginRqtCtx { mgr }))
+        .set_callback(auth_rqt_cb)
+        .set_context(LoginRqtCtx { mgr })
         .set_info("Login authentication (nfc+ocpp)")
         .finalize()?;
 
     let auth_reset = AfbVerb::new("reset authentication")
         .set_name("logout")
-        .set_callback(Box::new(LogoutRqtCtx { mgr }))
+        .set_callback(logout_auth_cb)
+        .set_context(LogoutRqtCtx { mgr })
         .set_info("Logout authenticate")
         .finalize()?;
 
     let state_verb = AfbVerb::new("auth-state")
         .set_name("state")
         .set_info("session auth-state state")
-        .set_action("['read','subscribe','unsubscribe']")?
-        .set_callback(Box::new(StateRequestCtx {
+        .set_actions("['read','subscribe','unsubscribe']")?
+        .set_callback(state_request_cb)
+        .set_context(StateRequestCtx {
             mgr,
             evt: state_event,
-        }))
+        })
         .finalize()?;
 
     let subscribe = AfbVerb::new("subscribe")
-        .set_callback(Box::new(SubscribeCtrl { event }))
+        .set_callback(subscribe_callback)
+        .set_context(SubscribeData { event })
         .set_info("subscribe auth-msg event")
         .set_usage("true|false")
         .finalize()?;
