@@ -61,6 +61,7 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
         match data_set.auth {
             AuthMsg::Done => {} // session is active let's logout
+            AuthMsg::Fail => {}
             _ => {
                 return afb_error!(
                     "auth-logout-fail",
@@ -133,6 +134,7 @@ impl ManagerHandle {
 
         match check_tagid() {
             Err(error) => {
+                self.event.push(AuthMsg::Fail);
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
@@ -151,6 +153,7 @@ impl ManagerHandle {
 
         match check_contract() {
             Err(error) => {
+                self.event.push(AuthMsg::Fail);
                 afb_log_msg!(Notice, self.event, "{}", error);
                 data_set.tagid = String::new();
                 data_set.auth = AuthMsg::Fail;
@@ -164,13 +167,34 @@ impl ManagerHandle {
         }
 
         // nfc is ok let check occp tag_id
-        if data_set.ocpp_check {
-            AfbSubCall::call_sync(
+        if data_set.ocpp_check { // Badge with ocpp check
+
+            match AfbSubCall::call_sync(
                 self.event.get_apiv4(),
                 self.ocpp_api,
                 "authorize",
                 data_set.tagid.clone(),
-            )?;
+            ) {
+                Ok(response) => {
+
+                    let ocpp_state = response.get::<bool>(0)?;
+                    if ocpp_state {
+                        data_set.auth = AuthMsg::Done; 
+                        afb_log_msg!(Notice, None, "Authentication Done");
+                    }
+                    else {
+                        data_set.auth = AuthMsg::Fail;
+                        afb_log_msg!(Notice, None, "Authentication Fail");
+                        self.event.push(data_set.auth);
+                        return afb_error!("ocpp-login-fail", "::::::::NFC rejected by OCPP::::::::");
+                    }
+                }
+                Err(_) => {
+                    data_set.auth = AuthMsg::Fail;
+                    self.event.push(data_set.auth);
+                    return afb_error!("ocpp-login-fail", "::::::::OCPP fails to authorize::::::::");
+                }
+            }
 
             // ocpp auth is ok let start ocpp transaction
             AfbSubCall::call_sync(
@@ -187,7 +211,10 @@ impl ManagerHandle {
                 EnergyAction::SUBSCRIBE,
             )?;
         }
-        data_set.auth = AuthMsg::Done;
+        else { // Badge without ocpp check
+            data_set.auth = AuthMsg::Done;
+            afb_log_msg!(Notice, None, "Authentification Done"); 
+        }
         self.event.push(data_set.auth);
         Ok(data_set.clone())
     }
