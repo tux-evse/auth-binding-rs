@@ -16,7 +16,7 @@ use typesv4::prelude::*;
 
 pub struct BindingCfg {
     pub nfc_api: &'static str,
-    pub ocpp_api: &'static str,
+    pub ocpp_api: Option<&'static str>,
     pub engy_api: &'static str,
     pub tic: u32,
 }
@@ -36,7 +36,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let api = jconf.default::<&'static str>("api", uid)?;
     let info = jconf.default::<&'static str>("info", "")?;
     let nfc_api = jconf.default::<&'static str>("nfc_api", "scard")?;
-    let ocpp_api = jconf.default::<&'static str>("ocpp_api", "ocpp")?;
+    let ocpp_api: Option<&'static str> = jconf.optional::<&'static str>("ocpp_api")?;
     let engy_api = jconf.default::<&'static str>("engy_api", "engy")?;
     let tic = jconf.default::<u32>("tic", 0)?;
 
@@ -48,10 +48,12 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     };
 
     // create backend API
-    let api = AfbApi::new(api)
-        .set_info(info)
-        .require_api(nfc_api)
-        .require_api(ocpp_api);
+    let api = AfbApi::new(api).set_info(info).require_api(nfc_api);
+
+    if ocpp_api.is_some() {
+        api.require_api(ocpp_api.unwrap());
+    }
+
     if let Ok(value) = jconf.get::<String>("permission") {
         api.set_permission(AfbPermission::new(to_static_str(value)));
     };
